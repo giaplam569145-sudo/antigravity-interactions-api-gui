@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Antigravity Interactions API Explorer & GUI</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-group">
+        <div class="badge-icon">🌌</div>
+        <div>
+          <h1>Google Antigravity GUI</h1>
+          <span class="subtext">Interactions API Playground &amp; Code Inspector</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div id="api-status-badge" class="status-badge checking">API Status prüfen...</div>
+        <button id="theme-toggle" class="btn-icon" title="Theme wechseln">🌓</button>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="main-layout">
+      <!-- Left Panel: Sidebar & Controls -->
+      <aside class="sidebar">
+        <!-- Presets / Quick Starts -->
+        <section class="card panel-section">
+          <h3>🎓 Lernszenarien (Vorlagen)</h3>
+          <p class="section-desc">Wähle ein vordefiniertes Szenario zum schnellen Austesten:</p>
+          <div class="template-chips">
+            <button class="chip" data-template="hello">👋 Hello World</button>
+            <button class="chip" data-template="math">🧮 Denkschritte / Math</button>
+            <button class="chip" data-template="memory">🧠 Multi-Turn State</button>
+            <button class="chip" data-template="system">🏴‍☠️ Persona / System Prompt</button>
+          </div>
+        </section>
+
+        <!-- Configuration Settings -->
+        <section class="card panel-section">
+          <h3>⚙️ Interaktions-Parameter</h3>
+
+          <div class="form-group">
+            <label for="agent-select">Modell / Agent:</label>
+            <select id="agent-select" class="form-control">
+              <option value="antigravity-preview-latest">antigravity-preview-latest (Empfohlen)</option>
+              <option value="antigravity-preview-09-2026">antigravity-preview-09-2026</option>
+              <option value="antigravity-preview-05-2026">antigravity-preview-05-2026</option>
+            </select>
+            <small class="helper-text">Google Antigravity wird über den Parameter <code>agent</code> aufgerufen.</small>
+          </div>
+
+          <div class="form-group">
+            <label for="system-instruction">System Instruction (optional):</label>
+            <textarea id="system-instruction" class="form-control" rows="2" placeholder="z. B. Du bist ein hilfsbereiter KI-Assistent für Quantenphysik..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="env-type">Environment:</label>
+            <input type="text" id="env-type" class="form-control" value="remote" readonly>
+            <small class="helper-text">InteractionsAPI erfordert <code>environment={'type': 'remote'}</code>.</small>
+          </div>
+
+          <div class="form-group">
+            <label for="prev-interaction-id">Vorherige Interaktions-ID (State Chaining):</label>
+            <div class="input-with-clear">
+              <input type="text" id="prev-interaction-id" class="form-control" placeholder="Optional: v1_Chd...">
+              <button id="clear-prev-id" class="btn-small" title="Konversationsverlauf zurücksetzen">Reset</button>
+            </div>
+            <small class="helper-text">Erlaubt zustandsbehaftete Multi-Turn-Gespräche ohne Re-Prompting.</small>
+          </div>
+
+          <div class="form-group switch-group">
+            <label class="switch-label" for="stream-toggle">
+              <span>Streaming (Server-Sent Events)</span>
+              <input type="checkbox" id="stream-toggle" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label for="custom-api-key">Gemini API Key (optional überschreiben):</label>
+            <input type="password" id="custom-api-key" class="form-control" placeholder="Wird standardmäßig aus GEMINI_API_KEY geladen">
+          </div>
+        </section>
+
+        <!-- Learn & Info Box -->
+        <section class="card panel-section learn-card">
+          <h3>💡 Was ist die Interactions API?</h3>
+          <p>
+            Im Gegensatz zur klassischen <code>generate_content</code> API ist die <strong>Interactions API</strong>
+            speziell für autonome Agenten wie <em>Antigravity</em> konzipiert:
+          </p>
+          <ul class="learn-list">
+            <li><strong>Zustandsbehaftet:</strong> Über <code>previous_interaction_id</code> merkt sich der Agent den Session-Kontext.</li>
+            <li><strong>Denkprozesse:</strong> Gedanken &amp; Arbeitsphasen werden separat als <code>ThoughtStep</code> geliefert.</li>
+            <li><strong>API-Version:</strong> Läuft über <code>v1beta</code> mit <code>environment={'type': 'remote'}</code>.</li>
+          </ul>
+        </section>
+      </aside>
+
+      <!-- Center & Right Panel: Interaction Area & Code Exporter -->
+      <section class="workspace">
+        <!-- Top Workspace: Interactive Chat & Outputs -->
+        <div class="card chat-workspace">
+          <div class="workspace-header">
+            <div class="tabs-group">
+              <button class="tab-btn active" data-tab="conversation-view">💬 Interaktions-Ansicht</button>
+              <button class="tab-btn" data-tab="raw-json-view">🔍 Raw JSON / Steps Explorer</button>
+              <button class="tab-btn" data-tab="guide-view">📖 InteractionsAPI Handbuch</button>
+            </div>
+            <div class="session-info">
+              <span id="session-badge" class="session-badge">Session: Neu</span>
+              <button id="new-session-btn" class="btn-text">Neue Session starten</button>
+            </div>
+          </div>
+
+          <!-- Tab Content 1: Conversation -->
+          <div id="conversation-view" class="tab-content active">
+            <div id="messages-container" class="messages-container">
+              <div class="welcome-banner">
+                <div class="welcome-icon">🚀</div>
+                <h3>Willkommen beim Google Antigravity Interactions Explorer!</h3>
+                <p>
+                  Gib unten eine Nachricht ein oder wähle oben links ein Lernszenario.
+                  Auf der rechten Seite siehst du in Echtzeit den passenden Code in <strong>Python</strong>,
+                  <strong>cURL</strong> und <strong>JavaScript</strong> zum direkten Rauskopieren!
+                </p>
+              </div>
+            </div>
+
+            <!-- Input area -->
+            <div class="chat-input-bar">
+              <textarea id="prompt-input" rows="2" placeholder="Nachricht an Antigravity eingeben... (Strg+Enter zum Senden)" class="form-control chat-textarea"></textarea>
+              <button id="send-btn" class="btn-primary">
+                <span class="btn-text-content">Senden</span>
+                <span class="btn-icon-content">➔</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tab Content 2: Raw JSON Explorer -->
+          <div id="raw-json-view" class="tab-content">
+            <div class="json-inspector-tools">
+              <span>Letzte Server-Antwort im Rohformat (Interactions API Payload):</span>
+              <button id="copy-json-btn" class="btn-small">JSON kopieren</button>
+            </div>
+            <pre id="raw-json-display" class="code-block json-box">// Noch keine Interaktion ausgeführt.</pre>
+          </div>
+
+          <!-- Tab Content 3: InteractionsAPI Guide -->
+          <div id="guide-view" class="tab-content guide-content">
+            <h2>🎓 Google Interactions API &amp; Antigravity Crashkurs</h2>
+            <p>
+              Die <strong>Interactions API</strong> (Google GenAI SDK <code>v3.0.0+</code> / REST <code>v1beta</code>)
+              ist Google's nächste Generation für komplexe, zustandsbehaftete Agenten-Workflows.
+            </p>
+
+            <h3>1. Warum "agent" statt "model"?</h3>
+            <p>
+              Das Modell <code>antigravity-preview-latest</code> ist als autonomer Agent klassifiziert. Wenn man es über
+              <code>client.models.generate_content(...)</code> oder mit <code>model='antigravity-preview-latest'</code> anfragt,
+              meldet die API: <em>"refers to an agent, please use the 'agent' field instead"</em>.
+            </p>
+
+            <h3>2. Die benötigte SDK-Initialisierung</h3>
+            <pre class="code-block python">from google import genai
+
+client = genai.Client(
+    api_key="DEIN_KEY",
+    http_options={"api_version": "v1beta"}  # WICHTIG!
+)</pre>
+
+            <h3>3. Stateful Multi-Turn</h3>
+            <p>
+              Um Konversationen fortzuführen, musst du nicht den gesamten Chat-Verlauf erneut mitsenden!
+              Übergib einfach die ID der letzten Antwort als <code>previous_interaction_id</code>:
+            </p>
+            <pre class="code-block python"># 1. Turn
+res1 = client.interactions.create(
+    agent="antigravity-preview-latest",
+    environment={"type": "remote"},
+    input="Merke dir: Mein Codename ist Nighthawk."
+)
+
+# 2. Turn (Agent erinnert sich!)
+res2 = client.interactions.create(
+    agent="antigravity-preview-latest",
+    environment={"type": "remote"},
+    previous_interaction_id=res1.id,
+    input="Wie lautet mein Codename?"
+)</pre>
+
+            <h3>4. Denkprozesse (Thought Steps)</h3>
+            <p>
+              Antigravity gibt getrennte Schritte (<code>steps</code>) zurück. Ein Schritt vom Typ <code>thought</code>
+              enthält die interne Überlegung der KI, während <code>model_output</code> die finale Antwort an den Nutzer darstellt.
+            </p>
+          </div>
+        </div>
+
+        <!-- Bottom Workspace: Real-Time Code Generator & Exporter -->
+        <div class="card code-workspace">
+          <div class="code-header">
+            <div class="code-title-group">
+              <span class="code-icon">💻</span>
+              <h3>Code Generator (Live-Snippet)</h3>
+              <span class="code-subtitle">— Exakt passender Code für deine aktuelle Konfiguration &amp; Eingabe:</span>
+            </div>
+            <div class="code-lang-selector">
+              <button class="lang-btn active" data-lang="python">Python (google-genai)</button>
+              <button class="lang-btn" data-lang="curl">cURL</button>
+              <button class="lang-btn" data-lang="javascript">JavaScript / Node.js</button>
+              <button id="copy-code-btn" class="btn-copy">📋 Code kopieren</button>
+            </div>
+          </div>
+          <div class="code-body">
+            <pre id="code-snippet-display" class="code-block language-python"></pre>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
